@@ -1,0 +1,53 @@
+<html>
+<head>
+
+</head>
+<body>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+    <script src="/static/map.js"></script>
+    <script src="/static/combine.js"></script>
+<script>
+var files = new Array();
+var ws; // our websocket to communicate with the server
+
+
+function makeSocket() {
+    ws = new WebSocket("ws://" + location.hostname + ":" + location.port + "/" + "websocket");
+    ws.onopen = function() {
+	var notifyOpened = new Object();
+	notifyOpened['command'] = 'opened';
+	ws.send(JSON.stringify(notifyOpened));
+    };
+
+    ws.onmessage = function(evt) {
+	var json = jQuery.parseJSON(evt.data);
+	if (json.command === "file") {
+	    console.log("SERVER: provided file with identifier " + json.identifier);
+	    files.push(json);
+	    console.log("added " + json.identifier + " to list of files.");
+	}
+	if (json.command === "map") {
+	    console.log("SERVER: asked us to perform map()");
+	    var results = "";
+	    console.log("mapping " + files.length + " files.");
+	    for (var i = 0; i < files.length; i++) {
+		results += map(files[i].identifier, files[i].contents);
+	    }
+	    var combined = combine(results);
+	    var toReturn = new Object();
+	    toReturn['command'] = 'results';
+	    toReturn['contents'] = combined;
+	    //console.log('just produced: ' + JSON.stringify(toReturn));
+	    //ws.send('mapped ' + files.length + ' files.');
+	    ws.send(JSON.stringify(toReturn));
+	}
+    };
+    
+}
+makeSocket();
+</script>
+
+Hi! I'm a parasite client.
+
+</body>
+</html>
